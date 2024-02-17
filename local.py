@@ -13,14 +13,19 @@ def main():
     parser = argparse.ArgumentParser(description="A command-line helper for batching translation jobs.")
     parser.add_argument('-t', '--translate', 
                         type=str, 
-                        help='-t [source_file] to translate the content of a local file.')
+                        metavar='source_file',
+                        help='Translate the content of a local file. Usage: -t [source_file]')
+
     parser.add_argument('-m', '--mimic', 
                         nargs=2, 
-                        help='-m [sample_file] [source_file] to study sample_file before translation.')
+                        metavar=('sample_file', 'source_file'),
+                        help='Study a sample file before translation. Usage: -m [sample_file] [source_file]')
+
     parser.add_argument('-r', '--redo', 
                         nargs='+', 
                         type=str, 
-                        help='-r [id] [chapter_index_1] [chapter_index2] ... to get new translations')
+                        metavar=('job_id', 'chapter_indexes'),
+                        help='Get new translations based on an ID and chapter indices. Usage: -r [job_id] [chapter_index_1] [chapter_index_2] ...')
 
     args = parser.parse_args()
     print("translation job initialized...")
