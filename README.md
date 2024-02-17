@@ -1,4 +1,4 @@
-# B19
+# B17
 
 B17 is an efficient command line tool crafted for batching translation jobs. It harnesses the power of several concurrent features offered by Modal, such as `NetworkFileSystem` and `map`, which allow us to initiate multiple OpenAI completion requests in parallel and thus perform numerous translation jobs at the same time.
 
