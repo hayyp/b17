@@ -1,4 +1,4 @@
-PROMPT_BOT = "gpt-3.5-turbo-16k"
+PROMPT_BOT = "gpt-3.5-turbo-0125"
 REQUIREMENTS = [
     "openai==1.10.0",
     "modal==0.56.4687"
