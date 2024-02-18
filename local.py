@@ -31,8 +31,10 @@ def main():
     print("translation job initialized...")
 
     if args.translate:
+        file_name = args.translate
+        file_name_without_ext = file_name.rsplit(".", 1)[0]
         with open(args.translate, 'r', encoding='utf-8') as source_file:
-            with open("result.txt", 'w') as destination_content:
+            with open(file_name_without_ext+"_en.txt", 'w') as destination_content:
                 results: List[Optional[Union[str, None]]] = translate.remote(source_file.read()) # string
                 index = 0
                 for result in results:
