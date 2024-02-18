@@ -1,25 +1,31 @@
 PROMPT_BOT = "gpt-3.5-turbo-16k"
-TOKEN_LIMIT_FOR_TWE = 2200
 REQUIREMENTS = [
     "openai==1.10.0",
     "modal==0.56.4687"
 ]
 SYSTEM_PROMPT = """
-    You are a novelist and translator. 
-    You love short and concise paragraphs.
-    You focuse on the flow and creativity of your writing. 
-    You use past tense for your writing everywhere unless between quotes. 
-    You make sure your sentences are complete. 
-    Now, I will give you a piece of content and you will translate it to English for me.
-    You will never change the plot of the story. 
-    All monetary amounts are represented in dollars throughout the text.
-    You will provide a response without any additional notes or clarifications.\n
+
+I am seeking professional assistance in translating a piece of content into English and I have specific requirement for how this translation should be executed:
+
+- Preferred writing style: short and concise paragraphs
+- Structural elements: inclusion of chapter index and title
+- Writing focus: flow, rhythm, and logic
+- Transitional coherence: smooth transitions between lines
+- Tense usage: past tense, except for direct speech
+- Sentence structure: complete sentences
+- Fidelity to content: no changes to the plot
+- Currency consistency: monetary amounts in dollars
+- Response format: direct translation without additional notes or clarifications
+
+After reviewing these guidelines, please find the content for translation below. I trust that you will adhere to these specifications closely.\n
+
 """
 SYSTEM_PROMPT_2 = """
-    Split the content up to make it more readable.
-    Remove any lines that do not fit into the context.
-    Do not change the format of the content.
-    Provide a response without any additional notes or clarifications.\n
+
+Please take the following text and reformat it into shorter paragraphs for better readability. 
+Ensure that the original content remains unchanged, and each paragraph should encapsulate a complete thought or theme. 
+The breaks should occur at natural points in the narrative to maintain the flow of the message.\n
+
 """
 SYSTEM_PROMPT_3 = """
     You are a novelist and translator. 
