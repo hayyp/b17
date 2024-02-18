@@ -62,8 +62,9 @@ def main():
     elif args.redo:
         id = args.redo[0]
         indexes =  [int(index) for index in args.redo[1:]]
+        ext = "_".join(str(index) for index in indexes)
 
-        with open("fixed_result.txt", 'w') as destination_content:
+        with open(f"fixed_result_{ext}.txt", 'w') as destination_content:
             results: List[Optional[Union[str, None]]] = redo_translate.remote(id, indexes) # string
             index = 0
             for result in results:
