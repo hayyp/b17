@@ -12,12 +12,16 @@ image = modal.Image.debian_slim().pip_install("openai", "modal")
 volume = modal.NetworkFileSystem.persisted("job_storage")
 
 def count_paragraphs(text: str) -> int:
-    paragraphs = re.split(r'\n\s*\n', text.strip())
+    paragraphs = re.split(r'\n+', text.strip())
     return len(paragraphs)
 
 def normalize_linebreak(text: str) -> str:
-    lines = text.split('\n')
-    separated_text = '\n'.join(line.strip() for line in lines)
+    lines = text.splitlines()
+    separated_text = ''
+    for i, line in enumerate(lines):
+        separated_text += line.strip() + '\n'
+        if i < len(lines) - 1 and lines[i + 1].strip():
+            separated_text += '\n'
     return separated_text
 
 @stub.function(
@@ -38,30 +42,31 @@ def client_msg_wrapper(
         completion = client.chat.completions.create(
             model=config.PROMPT_BOT,
             messages=[{
-                "role": "system",
-                "content": config.SYSTEM_PROMPT
-            }, {
+
                 "role": "user",
-                "content": chapter
+                "content": config.SYSTEM_PROMPT + chapter
             }]
         )
         
-        if completion.choices[0].message.content is not None:
-            res_text: str = completion.choices[0].message.content
+        # if completion.choices[0].message.content is not None:
+        res_text: str = completion.choices[0].message.content
+        print(f"Working on INDEX {index}\n")
+        print(f"first prompt {config.SYSTEM_PROMPT + chapter}\n")
+        print(f"first completion {completion}\n")
 
         if count_paragraphs(res_text) < 6:
             completion = client.chat.completions.create(
                 model=config.PROMPT_BOT,
                 messages=[{
-                    "role": "system",
-                    "content": config.SYSTEM_PROMPT_2
-                }, {
                     "role": "user",
-                    "content": res_text
+                    "content": config.SYSTEM_PROMPT_2 + res_text
                 }]
-            )    
-        if completion.choices[0].message.content is not None:
-            res_text = normalize_linebreak(completion.choices[0].message.content)
+            )   
+            print(f"second prompt [SPLIT] {config.SYSTEM_PROMPT_2 + res_text}\n")
+            print(f"second completion [SPLIT] {completion}\n")
+
+        #if completion.choices[0].message.content is not None:
+        res_text = normalize_linebreak(completion.choices[0].message.content)
 
         return (index, res_text.encode('utf-8'))
     except Exception as e:
