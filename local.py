@@ -3,7 +3,6 @@ import argparse
 from typing import Tuple, List, Union, Optional
 
 translate = modal.Function.lookup("bot17", "translate")
-translate_w_example = modal.Function.lookup("bot17", "translate_w_example")
 redo_translate = modal.Function.lookup("bot17", "redo_translate")
 
 
@@ -16,10 +15,10 @@ def main():
                         metavar='source_file',
                         help='Translate the content of a local file. Usage: -t [source_file]')
 
-    parser.add_argument('-m', '--mimic', 
+    parser.add_argument('-c', '--custom', 
                         nargs=2, 
-                        metavar=('sample_file', 'source_file'),
-                        help='Study a sample file before translation. Usage: -m [sample_file] [source_file]')
+                        metavar=('custom_prompt_file', 'source_file'),
+                        help='Use your own instruction for the translation. Usage: -c [custom_prompt_file] [source_file]')
 
     parser.add_argument('-r', '--redo', 
                         nargs='+', 
@@ -43,14 +42,16 @@ def main():
                         index = index + 1
                     elif isinstance(result, str):
                         destination_content.write(result + '\n\n')
-    elif args.mimic:
-        with open(args.mimic[0], 'r', encoding='utf-8') as sample_text:
-            with open(args.mimic[1], 'r', encoding='utf-8') as source_file:
-                with open("result.txt", 'w') as destination_content:
-                    sample_txt_content: str = sample_text.read()
+    elif args.custom:
+        file_name = args.custom[1]
+        file_name_without_ext = file_name.rsplit(".", 1)[0]
+        with open(args.custom[0], 'r', encoding='utf-8') as prompt_text:
+            with open(args.custom[1], 'r', encoding='utf-8') as source_file:
+                with open(file_name_without_ext+"_en.txt", 'w') as destination_content:
+                    prompt_txt_content: str = prompt_text.read()
                     source_file_content: str = source_file.read()
-                    results: List[Optional[Union[str, None]]] = translate_w_example.remote(
-                        sample_txt_content, source_file_content
+                    results: List[Optional[Union[str, None]]] = translate.remote(
+                        source_file_content, prompt_txt_content
                     )
                     index = 0
                     for result in results:
