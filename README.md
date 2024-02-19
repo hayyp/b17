@@ -4,7 +4,7 @@ B17 is an efficient command line tool crafted for batching translation jobs. It 
 
 ## Usage
 ```
-usage: local.py [-h] [-t source_file] [-m sample_file source_file] [-r job_id [chapter_indexes ...]]
+usage: local.py [-h] [-t source_file] [-c source_file custom_prompt_file] [-r job_id [chapter_indexes ...]]
 
 A command-line helper for batching translation jobs.
 
@@ -12,8 +12,8 @@ options:
   -h, --help            show this help message and exit
   -t source_file, --translate source_file
                         Translate the content of a local file. Usage: -t [source_file]
-  -m sample_file source_file, --mimic sample_file source_file
-                        Study a sample file before translation. Usage: -m [sample_file] [source_file]
+  -c source_file custom_prompt_file, --custom source_file custom_prompt_file
+                        Use your own instruction for the translation. Usage: -c [source_file] [custom_prompt_file]
   -r job_id [chapter_indexes ...], --redo job_id [chapter_indexes ...]
                         Get new translations based on an ID and chapter indices. Usage: -r [job_id] [chapter_index_1]
                         [chapter_index_2] ...
