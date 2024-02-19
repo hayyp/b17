@@ -17,12 +17,16 @@ def count_paragraphs(text: str) -> int:
 
 def normalize_linebreak(text: str) -> str:
     lines = text.splitlines()
-    separated_text = ''
+    normalized_text = ''
     for i, line in enumerate(lines):
-        separated_text += line.strip() + '\n'
-        if i < len(lines) - 1 and lines[i + 1].strip():
-            separated_text += '\n'
-    return separated_text
+        stripped_line = line.strip()
+        if stripped_line:
+            normalized_text += stripped_line + '\n'
+            if i < len(lines) - 1 and lines[i + 1].strip():
+                normalized_text += '\n'
+        elif normalized_text and not normalized_text.endswith('\n\n'):
+            normalized_text += '\n'
+    return normalized_text
 
 @stub.function(
     image=image,
