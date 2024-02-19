@@ -33,11 +33,11 @@ def normalize_linebreak(text: str) -> str:
     secrets=[modal.Secret.from_name("b17")]
 )
 def client_msg_wrapper(
-    enum_chapter: List[Optional[Union[str, None]]],
-    prompt: Optional[str]
+    chapter_w_id_prompt: Tuple[Tuple[int, str], Optional[str]]
 ) -> Tuple[int, bytes]:
     try:
-        index, chapter = enum_chapter
+        index, chapter = chapter_w_id_prompt[0]
+        prompt = chapter_w_id_prompt[1]
         
         client = OpenAI(
             api_key=os.environ["b17_openai_token"],
@@ -58,7 +58,7 @@ def client_msg_wrapper(
         # if completion.choices[0].message.content is not None:
         res_text: str = completion.choices[0].message.content
         print(f"Working on INDEX {index}\n")
-        print(f"first prompt {config.SYSTEM_PROMPT + chapter}\n")
+        print(f"first prompt {translation_prompt + '\n' + chapter}\n")
         print(f"first completion {completion}\n")
 
         if count_paragraphs(res_text) < 6:
@@ -98,8 +98,12 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
             chapter_obj = io.BytesIO(chapter.encode('utf-8'))
             volume.write_file(f"/src/{file_name}", chapter_obj)
         
+        chapters_w_id_prompt: List[Tuple[Tuple[int, str], Optional[str]]] = [
+            ((item[0], item[1]), prompt) for item in enum_chapters
+        ]
+        
         # translate
-        for index, translation_res in client_msg_wrapper.map(enum_chapters, prompt):
+        for index, translation_res in client_msg_wrapper.map(chapters_w_id_prompt):
             # client_msg_wrapper.map -> List[Tuple[int, bytes]]:
             file_name = f"{job_id}_{index}"
             if not isinstance(translation_res, bytes):
