@@ -17,8 +17,8 @@ def main():
 
     parser.add_argument('-c', '--custom', 
                         nargs=2, 
-                        metavar=('custom_prompt_file', 'source_file'),
-                        help='Use your own instruction for the translation. Usage: -c [custom_prompt_file] [source_file]')
+                        metavar=('source_file', 'custom_prompt_file'),
+                        help='Use your own instruction for the translation. Usage: -c [source_file] [custom_prompt_file]')
 
     parser.add_argument('-r', '--redo', 
                         nargs='+', 
@@ -43,10 +43,10 @@ def main():
                     elif isinstance(result, str):
                         destination_content.write(result + '\n\n')
     elif args.custom:
-        file_name = args.custom[1]
+        file_name = args.custom[0]
         file_name_without_ext = file_name.rsplit(".", 1)[0]
-        with open(args.custom[0], 'r', encoding='utf-8') as prompt_text:
-            with open(args.custom[1], 'r', encoding='utf-8') as source_file:
+        with open(args.custom[1], 'r', encoding='utf-8') as prompt_text:
+            with open(args.custom[0], 'r', encoding='utf-8') as source_file:
                 with open(file_name_without_ext+"_en.txt", 'w') as destination_content:
                     prompt_txt_content: str = prompt_text.read()
                     source_file_content: str = source_file.read()
