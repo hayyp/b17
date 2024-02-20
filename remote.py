@@ -58,7 +58,7 @@ def client_msg_wrapper(
         # if completion.choices[0].message.content is not None:
         res_text: str = completion.choices[0].message.content
         print(f"Working on INDEX {index}\n")
-        print(f"first prompt {translation_prompt} + '\n' + {chapter}\n")
+        print(f"first prompt {translation_prompt} '\n' {chapter}\n")
         print(f"first completion {completion}\n")
 
         if count_paragraphs(res_text) < 6:
