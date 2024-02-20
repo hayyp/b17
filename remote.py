@@ -58,7 +58,7 @@ def client_msg_wrapper(
         # if completion.choices[0].message.content is not None:
         res_text: str = completion.choices[0].message.content
         print(f"Working on INDEX {index}\n")
-        print(f"first prompt {translation_prompt + '\n' + chapter}\n")
+        print(f"first prompt {translation_prompt} + '\n' + {chapter}\n")
         print(f"first completion {completion}\n")
 
         if count_paragraphs(res_text) < 6:
@@ -138,9 +138,13 @@ def redo_translate(prev_id: str, indexes: List[int]):
             chapters.append(file_content)
 
         enum_chapters: List[Tuple[int, str]] = list(enumerate(chapters, start=1))
+        
+        chapters_w_id_prompt: List[Tuple[Tuple[int, str], Optional[str]]] = [
+            ((item[0], item[1]), None) for item in enum_chapters
+        ]
 
         # currently redone files will be re-arranged
-        for index, translation_res in client_msg_wrapper.map(enum_chapters):
+        for index, translation_res in client_msg_wrapper.map(chapters_w_id_prompt):
             file_name = f"{job_id}_{index}"
             if not isinstance(translation_res, bytes):
                 raise TypeError(f"Expected bytes, got {type(translation_res)}")
