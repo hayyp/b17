@@ -33,11 +33,10 @@ def normalize_linebreak(text: str) -> str:
     secrets=[modal.Secret.from_name("b17")]
 )
 def client_msg_wrapper(
-    chapter_w_id_prompt: Tuple[Tuple[int, str], Optional[str]]
-) -> Optional[Tuple[int, bytes]]:
+    chapter_w_prompt: Tuple[str, Optional[str]]
+) -> Optional[bytes]:
     try:
-        index, chapter = chapter_w_id_prompt[0]
-        prompt = chapter_w_id_prompt[1]
+        chapter, prompt = chapter_w_prompt
         
         client = OpenAI(
             api_key=os.environ["b17_openai_token"],
@@ -72,7 +71,6 @@ def client_msg_wrapper(
         else:
               return None
 
-        print(f"Working on INDEX {index}\n")
         print(f"first prompt {translation_prompt} '\n' {chapter}\n")
         print(f"first completion {completion}\n")
 
@@ -92,7 +90,7 @@ def client_msg_wrapper(
         else:
               return None
 
-        return (index, res_text.encode('utf-8'))
+        return res_text.encode('utf-8')
     except Exception as e:
         print(f"An error occurred in client_msg_wrapper: {e}")
         raise
@@ -108,20 +106,20 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
     try:
         chapters: List[str] = content.split('#####')[1:]
         chapters = [chapter.strip() for chapter in chapters]
-        enum_chapters: List[Tuple[int, str]] = list(enumerate(chapters, start=1))
+
         
-        for index, chapter in enum_chapters:
+        for index, chapter in enumerate(chapters, start=1):
             file_name = f"{job_id}_{index}"
             chapter_obj = io.BytesIO(chapter.encode('utf-8'))
             volume.write_file(f"/src/{file_name}", chapter_obj)
         
-        chapters_w_id_prompt: List[Tuple[Tuple[int, str], Optional[str]]] = [
-            ((item[0], item[1]), prompt) for item in enum_chapters
+        chapters_w_prompt: List[Tuple[str, Optional[str]]] = [
+            (chapter, prompt) for chapter in chapters
         ]
         
         # translate
-        for index, translation_res in client_msg_wrapper.map(chapters_w_id_prompt):
-            # client_msg_wrapper.map -> List[Tuple[int, bytes]]:
+        translations = client_msg_wrapper.map(chapters_w_prompt)
+        for index, translation_res in enumerate(translations, start=1):
             file_name = f"{job_id}_{index}"
             if not isinstance(translation_res, bytes):
                 raise TypeError(f"Expected bytes, got {type(translation_res)}")
@@ -153,15 +151,15 @@ def redo_translate(prev_id: str, indexes: List[int]):
             file_obj = b''.join(file)
             file_content = file_obj.decode('utf-8')
             chapters.append(file_content)
-
-        enum_chapters: List[Tuple[int, str]] = list(enumerate(chapters, start=1))
         
-        chapters_w_id_prompt: List[Tuple[Tuple[int, str], Optional[str]]] = [
-            ((item[0], item[1]), None) for item in enum_chapters
+        chapters_w_prompt: List[Tuple[str, Optional[str]]] = [
+            # should be able to fetch old prompt
+            (chapter, None) for chapter in chapters
         ]
 
         # currently redone files will be re-arranged
-        for index, translation_res in client_msg_wrapper.map(chapters_w_id_prompt):
+        translations = client_msg_wrapper.map(chapters_w_prompt)
+        for index, translation_res in enumerate(translations, start=1):
             file_name = f"{job_id}_{index}"
             if not isinstance(translation_res, bytes):
                 raise TypeError(f"Expected bytes, got {type(translation_res)}")
