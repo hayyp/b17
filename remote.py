@@ -9,6 +9,7 @@ from openai import OpenAI
 from typing import List, Optional, Union, Tuple
 
 stub = modal.Stub("bot17")
+stub.id_prompt_dict = modal.Dict.new()
 image = modal.Image.debian_slim()
     .pip_install("openai", "modal", "tiktoken")
     .run_commands(
@@ -37,21 +38,30 @@ def normalize_linebreak(text: str) -> str:
     image=image,
     secrets=[modal.Secret.from_name("b17")]
 )
-def last_shot(chapter: str) -> str:
-    print("LAST SHOT MODE IS ON")
-    print("LAST SHOT MODE IS ON")
-    print("LAST SHOT MODE IS ON")
-    print("LAST SHOT MODE IS ON")
-    chapters_w_prompt = [(chapter, None)] * 10
-    translations = client_msg_wrapper(chapters_w_prompt)
-    current_longest_version = b""
-    current_record_len = 0
-    for translation in translations:
-        current_len = len(translation) 
-        if current_len > current_record_len:
-            current_record_len = current_len
-            current_longest_version = translation
-    return current_longest_version.decode('utf-8')
+def last_shot(chapter: str, prompt: Optional[str] = None) -> str:
+    try:
+        print("LAST SHOT MODE IS ON")
+        print("LAST SHOT MODE IS ON")
+        print("LAST SHOT MODE IS ON")
+        print("LAST SHOT MODE IS ON")
+        
+        chapters_w_prompt = [(chapter, None)] * 10
+        translations = client_msg_wrapper(chapters_w_prompt)
+        
+        current_longest_version = b""
+        current_record_len = 0
+        
+        for translation in translations:
+            current_len = len(translation) 
+            if current_len > current_record_len:
+                current_record_len = current_len
+                current_longest_version = translation
+        
+        return current_longest_version.decode('utf-8')
+    
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return ""
     
 @stub.function(
     image=image,
@@ -96,7 +106,7 @@ def client_msg_wrapper(
         else:
               return None
 
-        print(f"first prompt {translation_prompt} '\n' {chapter}\n")
+        print(f"first prompt {translation_prompt}\n{chapter}\n")
         print(f"first completion {completion}\n")
 
         if count_paragraphs(res_text) < 6:
@@ -124,11 +134,13 @@ def client_msg_wrapper(
     image=image
 )
 def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union[str, None]]]:
-    volume = modal.NetworkFileSystem.lookup("job_storage")
-    job_id: uuid.UUID = uuid.uuid4()
-    output: List[Optional[Union[str, None]]] = []
-    output.append(str(job_id))
     try:
+        volume = modal.NetworkFileSystem.lookup("job_storage")
+        job_id: uuid.UUID = uuid.uuid4()
+        stub.id_prompt_dict.put(str(job_id), prompt)
+        print("Put JOB_ID to DICT")
+        output: List[Optional[Union[str, None]]] = []
+        output.append(str(job_id))
         chapters: List[str] = content.split('#####')[1:]
         chapters = [chapter.strip() for chapter in chapters]
 
@@ -156,7 +168,7 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
             encoded_translation =enc.encode(translation_text)
             encoded_source = enc.encode(chapters[index-1])
             if len(encoded_translation) < len(encoded_source):
-                translation_text = last_shot(chapters[index-1])
+                translation_text = last_shot.remote(chapters[index-1], prompt)
             else:
                 print(f"translation token size: {len(encoded_translation)}")
                 print(f"source token size: {len(encoded_source)}")
@@ -185,6 +197,7 @@ def redo_translate(prev_id: str, indexes: List[int]):
             file_obj = b''.join(file)
             file_content = file_obj.decode('utf-8')
             chapters.append(file_content)
+        prompt = stub.id_prompt_dict.get(prev_id)
         
         chapters_w_prompt: List[Tuple[str, Optional[str]]] = [
             # should be able to fetch old prompt
