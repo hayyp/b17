@@ -10,10 +10,10 @@ from typing import List, Optional, Union, Tuple
 
 stub = modal.Stub("bot17")
 stub.id_prompt_dict = modal.Dict.new()
-image = modal.Image.debian_slim()
-    .pip_install("openai", "modal", "tiktoken")
+image = modal.Image.debian_slim()\
+    .pip_install("openai", "modal", "tiktoken")\
     .run_commands(
-        "python -c 'import tiktoken; tiktoken.encoding_for_model('gpt-3.5-turbo-0125')'"
+        "python -c \"import tiktoken; tiktoken.encoding_for_model('gpt-3.5-turbo-0125')\""
 )
 volume = modal.NetworkFileSystem.persisted("job_storage")
 
@@ -45,14 +45,15 @@ def last_shot(chapter: str, prompt: Optional[str] = None) -> str:
         print("LAST SHOT MODE IS ON")
         print("LAST SHOT MODE IS ON")
         
-        chapters_w_prompt = [(chapter, None)] * 10
-        translations = client_msg_wrapper(chapters_w_prompt)
+        chapters_w_prompt = [(chapter, prompt)] * 10
+        translations = client_msg_wrapper.map(chapters_w_prompt)
         
         current_longest_version = b""
         current_record_len = 0
         
-        for translation in translations:
+        for index, translation in enumerate(translations, start=1):
             current_len = len(translation) 
+            print(f"counting len of ver {index}")
             if current_len > current_record_len:
                 current_record_len = current_len
                 current_longest_version = translation
@@ -61,7 +62,7 @@ def last_shot(chapter: str, prompt: Optional[str] = None) -> str:
     
     except Exception as e:
         print(f"An error occurred: {str(e)}")
-        return ""
+        return "Stopped by error"
     
 @stub.function(
     image=image,
@@ -92,22 +93,24 @@ def client_msg_wrapper(
         tries = 1
         retry_lim = 3
         while completion.choices[0].message.content is None and tries < retry_lim:
-                tries = tries + 1
-                completion = client.chat.completions.create(
-                        model=config.PROMPT_BOT,
-                        messages=[{
-                                "role": "user",
-                                "content": translation_prompt+ '\n' + chapter
-                        }]
-                ) 
+            print("invalid response from openai server...")
+            tries = tries + 1
+            completion = client.chat.completions.create(
+                    model=config.PROMPT_BOT,
+                    messages=[{
+                            "role": "user",
+                            "content": translation_prompt+ '\n' + chapter
+                    }]
+            ) 
 
         if completion.choices[0].message.content is not None:
                res_text: str = completion.choices[0].message.content
         else:
-              return None
+            print("invalid response after retries...")
+            return None
 
-        print(f"first prompt {translation_prompt}\n{chapter}\n")
-        print(f"first completion {completion}\n")
+        # print(f"first prompt {translation_prompt}\n{chapter}\n")
+        # print(f"first completion {completion}\n")
 
         if count_paragraphs(res_text) < 6:
             completion = client.chat.completions.create(
@@ -138,7 +141,6 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
         volume = modal.NetworkFileSystem.lookup("job_storage")
         job_id: uuid.UUID = uuid.uuid4()
         stub.id_prompt_dict.put(str(job_id), prompt)
-        print("Put JOB_ID to DICT")
         output: List[Optional[Union[str, None]]] = []
         output.append(str(job_id))
         chapters: List[str] = content.split('#####')[1:]
@@ -170,6 +172,7 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
             if len(encoded_translation) < len(encoded_source):
                 translation_text = last_shot.remote(chapters[index-1], prompt)
             else:
+                print("translation size test passed")
                 print(f"translation token size: {len(encoded_translation)}")
                 print(f"source token size: {len(encoded_source)}")
             output.append(translation_text)
@@ -199,9 +202,12 @@ def redo_translate(prev_id: str, indexes: List[int]):
             chapters.append(file_content)
         prompt = stub.id_prompt_dict.get(prev_id)
         
+        if prompt is not None:
+            print("custom prompt retrieved...")
+
         chapters_w_prompt: List[Tuple[str, Optional[str]]] = [
             # should be able to fetch old prompt
-            (chapter, None) for chapter in chapters
+            (chapter, prompt) for chapter in chapters
         ]
 
         # currently redone files will be re-arranged
@@ -213,6 +219,15 @@ def redo_translate(prev_id: str, indexes: List[int]):
             volume.write_file(f"/res/{file_name}", io.BytesIO(translation_res))
 
             translation_text: str = translation_res.decode('utf-8')
+            enc = tiktoken.encoding_for_model("gpt-3.5-turbo-0125")
+            encoded_translation =enc.encode(translation_text)
+            encoded_source = enc.encode(chapters[index-1])
+            if len(encoded_translation) < len(encoded_source):
+                translation_text = last_shot.remote(chapters[index-1], prompt)
+            else:
+                print("translation size test passed")
+                print(f"translation token size: {len(encoded_translation)}")
+                print(f"source token size: {len(encoded_source)}")
             output.append(translation_text)
         
     except FileNotFoundError as fnf_error:
