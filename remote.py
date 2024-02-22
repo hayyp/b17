@@ -34,7 +34,7 @@ def normalize_linebreak(text: str) -> str:
 )
 def client_msg_wrapper(
     chapter_w_id_prompt: Tuple[Tuple[int, str], Optional[str]]
-) -> Tuple[int, bytes]:
+) -> Optional[Tuple[int, bytes]]:
     try:
         index, chapter = chapter_w_id_prompt[0]
         prompt = chapter_w_id_prompt[1]
@@ -55,8 +55,23 @@ def client_msg_wrapper(
             }]
         )
         
-        # if completion.choices[0].message.content is not None:
-        res_text: str = completion.choices[0].message.content
+        tries = 1
+        retry_lim = 3
+        while completion.choices[0].message.content is None and tries < retry_lim:
+                tries = tries + 1
+                completion = client.chat.completions.create(
+                        model=config.PROMPT_BOT,
+                        messages=[{
+                                "role": "user",
+                                "content": translation_prompt + res_text
+                        }]
+                ) 
+
+        if completion.choices[0].message.content is not None:
+               res_text: str = completion.choices[0].message.content
+        else:
+              return None
+
         print(f"Working on INDEX {index}\n")
         print(f"first prompt {translation_prompt} '\n' {chapter}\n")
         print(f"first completion {completion}\n")
@@ -72,8 +87,10 @@ def client_msg_wrapper(
             print(f"second prompt [SPLIT] {config.SYSTEM_PROMPT_2 + res_text}\n")
             print(f"second completion [SPLIT] {completion}\n")
 
-        #if completion.choices[0].message.content is not None:
-        res_text = normalize_linebreak(completion.choices[0].message.content)
+        if completion.choices[0].message.content is not None:
+               res_text = normalize_linebreak(completion.choices[0].message.content)
+        else:
+              return None
 
         return (index, res_text.encode('utf-8'))
     except Exception as e:
@@ -86,8 +103,8 @@ def client_msg_wrapper(
 def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union[str, None]]]:
     volume = modal.NetworkFileSystem.lookup("job_storage")
     job_id: uuid.UUID = uuid.uuid4()
-    output: List[Optional[Union[str, None]]] = [None] * 101  # maximum capacity is 100 so far
-    output[0] = str(job_id)
+    output: List[Optional[Union[str, None]]] = []
+    output.append(str(job_id))
     try:
         chapters: List[str] = content.split('#####')[1:]
         chapters = [chapter.strip() for chapter in chapters]
@@ -111,7 +128,7 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
             volume.write_file(f"/res/{file_name}", io.BytesIO(translation_res))
 
             translation_text: str = translation_res.decode('utf-8')
-            output[index] = translation_text
+            output.append(translation_text)
         
     except FileNotFoundError as fnf_error:
         print(f"Error: The file {file_name} was not found: {fnf_error}")
@@ -129,8 +146,8 @@ def redo_translate(prev_id: str, indexes: List[int]):
         volume = modal.NetworkFileSystem.lookup("job_storage")
         job_id: uuid.UUID = uuid.uuid4()
         chapters = []
-        output: List[Optional[Union[str, None]]] = [None] * 101
-        output[0] = str(job_id)
+        output: List[Optional[Union[str, None]]] = []
+        output.append(str(job_id))
         for index in indexes:
             file = volume.read_file(f"/src/{prev_id}_{index}")
             file_obj = b''.join(file)
@@ -151,7 +168,7 @@ def redo_translate(prev_id: str, indexes: List[int]):
             volume.write_file(f"/res/{file_name}", io.BytesIO(translation_res))
 
             translation_text: str = translation_res.decode('utf-8')
-            output[index] = translation_text
+            output.append(translation_text)
         
     except FileNotFoundError as fnf_error:
         print(f"Error: The file {file_name} was not found: {fnf_error}")
