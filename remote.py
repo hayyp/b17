@@ -4,11 +4,16 @@ import uuid
 import config
 import io
 import re
+import tiktoken
 from openai import OpenAI
 from typing import List, Optional, Union, Tuple
 
 stub = modal.Stub("bot17")
-image = modal.Image.debian_slim().pip_install("openai", "modal")
+image = modal.Image.debian_slim()
+    .pip_install("openai", "modal", "tiktoken")
+    .run_commands(
+        "python -c 'import tiktoken; tiktoken.encoding_for_model('gpt-3.5-turbo-0125')'"
+)
 volume = modal.NetworkFileSystem.persisted("job_storage")
 
 def count_paragraphs(text: str) -> int:
@@ -28,6 +33,26 @@ def normalize_linebreak(text: str) -> str:
             normalized_text += '\n'
     return normalized_text
 
+@stub.function(
+    image=image,
+    secrets=[modal.Secret.from_name("b17")]
+)
+def last_shot(chapter: str) -> str:
+    print("LAST SHOT MODE IS ON")
+    print("LAST SHOT MODE IS ON")
+    print("LAST SHOT MODE IS ON")
+    print("LAST SHOT MODE IS ON")
+    chapters_w_prompt = [(chapter, None)] * 10
+    translations = client_msg_wrapper(chapters_w_prompt)
+    current_longest_version = b""
+    current_record_len = 0
+    for translation in translations:
+        current_len = len(translation) 
+        if current_len > current_record_len:
+            current_record_len = current_len
+            current_longest_version = translation
+    return current_longest_version.decode('utf-8')
+    
 @stub.function(
     image=image,
     secrets=[modal.Secret.from_name("b17")]
@@ -62,7 +87,7 @@ def client_msg_wrapper(
                         model=config.PROMPT_BOT,
                         messages=[{
                                 "role": "user",
-                                "content": translation_prompt + res_text
+                                "content": translation_prompt+ '\n' + chapter
                         }]
                 ) 
 
@@ -126,6 +151,15 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
             volume.write_file(f"/res/{file_name}", io.BytesIO(translation_res))
 
             translation_text: str = translation_res.decode('utf-8')
+
+            enc = tiktoken.encoding_for_model("gpt-3.5-turbo-0125")
+            encoded_translation =enc.encode(translation_text)
+            encoded_source = enc.encode(chapters[index-1])
+            if len(encoded_translation) < len(encoded_source):
+                translation_text = last_shot(chapters[index-1])
+            else:
+                print(f"translation token size: {len(encoded_translation)}")
+                print(f"source token size: {len(encoded_source)}")
             output.append(translation_text)
         
     except FileNotFoundError as fnf_error:

@@ -1,7 +1,8 @@
 PROMPT_BOT = "gpt-3.5-turbo-0125"
 REQUIREMENTS = [
     "openai==1.10.0",
-    "modal==0.56.4687"
+    "modal==0.56.4687",
+    "tiktoken==0.6.0"
 ]
 SYSTEM_PROMPT = """
 
@@ -26,9 +27,4 @@ Please take the following text and reformat it into shorter paragraphs for bette
 Ensure that the original content remains unchanged, and each paragraph should encapsulate a complete thought or theme. 
 The breaks should occur at natural points in the narrative to maintain the flow of the message.\n
 
-"""
-SYSTEM_PROMPT_3 = """
-    You are a novelist and translator. 
-    You will study the writing style of the following text.
-    You will use what you have learned when translating the Chinese text I give you.\n
 """
