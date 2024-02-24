@@ -36,7 +36,8 @@ def normalize_linebreak(text: str) -> str:
 
 @stub.function(
     image=image,
-    secrets=[modal.Secret.from_name("b17")]
+    secrets=[modal.Secret.from_name("b17")],
+    timeout=600
 )
 def last_shot(chapter_w_prompt: Tuple[str, Optional[str]]) -> str:
     try:
@@ -63,7 +64,8 @@ def last_shot(chapter_w_prompt: Tuple[str, Optional[str]]) -> str:
     
 @stub.function(
     image=image,
-    secrets=[modal.Secret.from_name("b17")]
+    secrets=[modal.Secret.from_name("b17")],
+    timeout=600
 )
 def client_msg_wrapper(
     chapter_w_prompt: Tuple[str, Optional[str]]
@@ -109,7 +111,7 @@ def client_msg_wrapper(
         # print(f"first prompt {translation_prompt}\n{chapter}\n")
         # print(f"first completion {completion}\n")
 
-        if count_paragraphs(res_text) < 6:
+        if count_paragraphs(res_text) < 6 and count_paragraphs(res_text) > 2:
             completion = client.chat.completions.create(
                 model=config.PROMPT_BOT,
                 messages=[{
@@ -128,10 +130,12 @@ def client_msg_wrapper(
         return res_text.encode('utf-8')
     except Exception as e:
         print(f"An error occurred in client_msg_wrapper: {e}")
-        raise
+        error_msg = "[ Skipped due to an error ]"
+        return error_msg.encode("utf-8")
 
 @stub.function(
-    image=image
+    image=image,
+    timeout=600
 )
 def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union[str, None]]]:
     try:
