@@ -83,7 +83,6 @@ def client_msg_wrapper(
         completion = client.chat.completions.create(
             model=config.PROMPT_BOT,
             messages=[{
-
                 "role": "user",
                 "content": translation_prompt + '\n' + chapter
             }]
@@ -119,13 +118,13 @@ def client_msg_wrapper(
                     "content": config.SYSTEM_PROMPT_2 + res_text
                 }]
             )   
-            print(f"second prompt [SPLIT] {config.SYSTEM_PROMPT_2 + res_text}\n")
+            print(f"second prompt [SPLIT]\n")
             print(f"second completion [SPLIT] {completion}\n")
 
         if completion.choices[0].message.content is not None:
-               res_text = normalize_linebreak(completion.choices[0].message.content)
+            res_text = normalize_linebreak(completion.choices[0].message.content)
         else:
-              return None
+            return None
 
         return res_text.encode('utf-8')
     except Exception as e:
@@ -197,8 +196,7 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
         print(f"Error: The file {file_name} was not found: {fnf_error}")
     except Exception as e:
         print(f"An error occurred in translate: {e}")
-        raise
-    return output
+        return output
 
 
 @stub.function(
@@ -228,6 +226,8 @@ def redo_translate(prev_id: str, indexes: List[int]):
 
         # currently redone files will be re-arranged
         translations = client_msg_wrapper.map(chapters_w_prompt)
+        short_chapters: List[Tuple[str, Optional[str]]] = []
+        short_chapter_indexes: List[int] = []
         for index, translation_res in enumerate(translations, start=1):
             file_name = f"{job_id}_{index}"
             if not isinstance(translation_res, bytes):
@@ -238,17 +238,28 @@ def redo_translate(prev_id: str, indexes: List[int]):
             enc = tiktoken.encoding_for_model("gpt-3.5-turbo-0125")
             encoded_translation =enc.encode(translation_text)
             encoded_source = enc.encode(chapters[index-1])
-            if len(encoded_translation) < len(encoded_source):
-                translation_text = last_shot.remote(chapters[index-1], prompt)
+            if len(encoded_translation) < 0.5 * len(encoded_source):
+                print(f"LAST SHOT MODE IS STARTING: translation token {len(encoded_translation)}")
+                print(f"LAST SHOT MODE IS STARTING: source_token {len(encoded_source)}")
+                short_chapters.append((chapters[index-1], prompt))
+                short_chapter_indexes.append(index)
+                output.append(None)
+
             else:
                 print("translation size test passed")
                 print(f"translation token size: {len(encoded_translation)}")
                 print(f"source token size: {len(encoded_source)}")
-            output.append(translation_text)
+                output.append(translation_text)
+
+        if short_chapters:
+            print(f"LAST SHOT MODE IS ON")
+            new_translations = last_shot.map(short_chapters)
+            for index, translation in enumerate(new_translations, start=0):
+                chapter_index = short_chapter_indexes[index]
+                output[chapter_index] = translation
         
     except FileNotFoundError as fnf_error:
         print(f"Error: The file {file_name} was not found: {fnf_error}")
     except Exception as e:
         print(f"An error occurred in translate: {e}")
-        raise
     return output
