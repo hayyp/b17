@@ -18,6 +18,33 @@ options:
                         Get new translations based on an ID and chapter indices. Usage: -r [job_id] [chapter_index_1]
                         [chapter_index_2] ...
 ```
+## How it works
+```
+                      |<---  remote.py running on Modal ----------------->|
++----------+          +-----------+               +-----------------------+
+|          |   call   |           |   call        |                       |
+| User     |--------->| translate |-------------> | translate_msg_wrapper |
+| local.py |<---------|           |<------------- |   (concurrent for     |
+|          |  return  |           |  return       |    all chapters)      |
++----------+          +-----------+               |                       |
+                         ^  |                     |                       |
+                (return  |  | (If translations    |                       | 
+                updated  |  | don't meet          |                       |
+               results)  |  | requirements)       |                       |
+                         |  |                     |                       |
+                         |  V                     |                       |
+                  +------------------+  call      |                       |  
+                  |                  |----------> |                       |
+                  | last_shot        |            |                       |
+                  | (concurrent for  |<---------- | translate_msg_wrapper |
+                  | all unqualified  |   return   |   (10 concurrent      |
+                  |       chapters)  |            |    calls for each     |                                        
+                  +------------------+            |    last_shot)         |
+                                                  +-----------------------+
+                                                
+                                                
+
+```
 
 ## How to deploy and how to run
 
