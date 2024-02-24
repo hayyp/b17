@@ -38,11 +38,11 @@ def normalize_linebreak(text: str) -> str:
     image=image,
     secrets=[modal.Secret.from_name("b17")]
 )
-def last_shot(chapter: str, prompt: Optional[str] = None) -> str:
+def last_shot(chapter_w_prompt: Tuple[str, Optional[str]]) -> str:
     try:
         print("LAST SHOT MODE IS ON")
         print("LAST SHOT MODE IS ON")       
-        chapters_w_prompt = [(chapter, prompt)] * 10
+        chapters_w_prompt = [chapter_w_prompt] * 10
         translations = client_msg_wrapper.map(chapters_w_prompt)
         
         current_longest_version = b""
@@ -131,8 +131,7 @@ def client_msg_wrapper(
         raise
 
 @stub.function(
-    image=image,
-    timeout=600
+    image=image
 )
 def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union[str, None]]]:
     try:
@@ -156,6 +155,8 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
         
         # translate
         translations = client_msg_wrapper.map(chapters_w_prompt)
+        short_chapters: List[Tuple[str, Optional[str]]] = []
+        short_chapter_indexes: List[int] = []
         for index, translation_res in enumerate(translations, start=1):
             file_name = f"{job_id}_{index}"
             if not isinstance(translation_res, bytes):
@@ -167,15 +168,26 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
             enc = tiktoken.encoding_for_model("gpt-3.5-turbo-0125")
             encoded_translation =enc.encode(translation_text)
             encoded_source = enc.encode(chapters[index-1])
+
             if len(encoded_translation) < 0.5 * len(encoded_source):
-                print(f"LAST SHOT MODE IS ON: translation token {len(encoded_translation)}")
-                print(f"LAST SHOT MODE IS ON: source_token {len(encoded_source)}")
-                translation_text = last_shot.remote(chapters[index-1], prompt)
+                print(f"LAST SHOT MODE IS STARTING: translation token {len(encoded_translation)}")
+                print(f"LAST SHOT MODE IS STARTING: source_token {len(encoded_source)}")
+                short_chapters.append((chapters[index-1], prompt))
+                short_chapter_indexes.append(index)
+                output.append(None)
             else:
                 print("translation size test passed")
                 print(f"translation token size: {len(encoded_translation)}")
                 print(f"source token size: {len(encoded_source)}")
-            output.append(translation_text)
+                output.append(translation_text)
+
+
+        if short_chapters:
+            print(f"LAST SHOT MODE IS ON")
+            new_translations = last_shot.map(short_chapters)
+            for index, translation in enumerate(new_translations, start=0):
+                chapter_index = short_chapter_indexes[index]
+                output[chapter_index] = translation
         
     except FileNotFoundError as fnf_error:
         print(f"Error: The file {file_name} was not found: {fnf_error}")
@@ -186,8 +198,7 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
 
 
 @stub.function(
-    image=image,
-    timeout=600
+    image=image
 )
 def redo_translate(prev_id: str, indexes: List[int]):
     try:
