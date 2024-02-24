@@ -41,10 +41,7 @@ def normalize_linebreak(text: str) -> str:
 def last_shot(chapter: str, prompt: Optional[str] = None) -> str:
     try:
         print("LAST SHOT MODE IS ON")
-        print("LAST SHOT MODE IS ON")
-        print("LAST SHOT MODE IS ON")
-        print("LAST SHOT MODE IS ON")
-        
+        print("LAST SHOT MODE IS ON")       
         chapters_w_prompt = [(chapter, prompt)] * 10
         translations = client_msg_wrapper.map(chapters_w_prompt)
         
@@ -134,7 +131,8 @@ def client_msg_wrapper(
         raise
 
 @stub.function(
-    image=image
+    image=image,
+    timeout=600
 )
 def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union[str, None]]]:
     try:
@@ -169,7 +167,9 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
             enc = tiktoken.encoding_for_model("gpt-3.5-turbo-0125")
             encoded_translation =enc.encode(translation_text)
             encoded_source = enc.encode(chapters[index-1])
-            if len(encoded_translation) < len(encoded_source):
+            if len(encoded_translation) < 0.5 * len(encoded_source):
+                print(f"LAST SHOT MODE IS ON: translation token {len(encoded_translation)}")
+                print(f"LAST SHOT MODE IS ON: source_token {len(encoded_source)}")
                 translation_text = last_shot.remote(chapters[index-1], prompt)
             else:
                 print("translation size test passed")
@@ -186,7 +186,8 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
 
 
 @stub.function(
-    image=image
+    image=image,
+    timeout=600
 )
 def redo_translate(prev_id: str, indexes: List[int]):
     try:
