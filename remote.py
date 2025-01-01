@@ -8,19 +8,20 @@ import tiktoken
 from openai import OpenAI
 from typing import List, Optional, Union, Tuple
 
-stub = modal.Stub("bot17")
-stub.id_prompt_dict = modal.Dict.new()
+
+app = modal.App("pr1")
+id_prompt_dict = modal.Dict.from_name("pr_prompt_dict", create_if_missing=True)
 image = modal.Image.debian_slim()\
     .pip_install("openai", "modal", "tiktoken")\
     .run_commands(
         "python -c \"import tiktoken; tiktoken.encoding_for_model('gpt-3.5-turbo-0125')\""
 )
-volume = modal.NetworkFileSystem.persisted("job_storage")
+volume = modal.NetworkFileSystem.from_name("job_storage", create_if_missing=True)
 
 def count_paragraphs(text: str) -> int:
     paragraphs = re.split(r'\n+', text.strip())
     return len(paragraphs)
-
+    
 def normalize_linebreak(text: str) -> str:
     lines = text.splitlines()
     normalized_text = ''
@@ -33,10 +34,11 @@ def normalize_linebreak(text: str) -> str:
         elif normalized_text and not normalized_text.endswith('\n\n'):
             normalized_text += '\n'
     return normalized_text
-
-@stub.function(
+    
+    
+@app.function(
     image=image,
-    secrets=[modal.Secret.from_name("b17")],
+    secrets=[modal.Secret.from_name("pr1")],
     timeout=600
 )
 def last_shot(chapter_w_prompt: Tuple[str, Optional[str]]) -> str:
@@ -61,10 +63,12 @@ def last_shot(chapter_w_prompt: Tuple[str, Optional[str]]) -> str:
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         return "Stopped by error"
-    
-@stub.function(
+        
+        
+        
+@app.function(
     image=image,
-    secrets=[modal.Secret.from_name("b17")],
+    secrets=[modal.Secret.from_name("pr1")],
     timeout=600
 )
 def client_msg_wrapper(
@@ -74,8 +78,8 @@ def client_msg_wrapper(
         chapter, prompt = chapter_w_prompt
         
         client = OpenAI(
-            api_key=os.environ["b17_openai_token"],
-            base_url=f"https://{os.environ['b17_mirror_url']}/v1"
+            api_key=os.environ["ds"],
+            base_url=f"{os.environ['url_ds']}"
         )
         
         translation_prompt = prompt if prompt is not None else config.SYSTEM_PROMPT
@@ -131,8 +135,9 @@ def client_msg_wrapper(
         print(f"An error occurred in client_msg_wrapper: {e}")
         error_msg = "[ Skipped due to an error ]"
         return error_msg.encode("utf-8")
-
-@stub.function(
+        
+        
+@app.function(
     image=image,
     timeout=600
 )
@@ -140,7 +145,7 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
     try:
         volume = modal.NetworkFileSystem.lookup("job_storage")
         job_id: uuid.UUID = uuid.uuid4()
-        stub.id_prompt_dict.put(str(job_id), prompt)
+        id_prompt_dict.put(str(job_id), prompt)
         output: List[Optional[Union[str, None]]] = []
         output.append(str(job_id))
         chapters: List[str] = content.split('#####')[1:]
@@ -196,10 +201,10 @@ def translate(content: str, prompt: Optional[str] = None) -> List[Optional[Union
         print(f"Error: The file {file_name} was not found: {fnf_error}")
     except Exception as e:
         print(f"An error occurred in translate: {e}")
-        return output
-
-
-@stub.function(
+    return output
+        
+        
+@app.function(
     image=image
 )
 def redo_translate(prev_id: str, indexes: List[int]):
@@ -214,7 +219,7 @@ def redo_translate(prev_id: str, indexes: List[int]):
             file_obj = b''.join(file)
             file_content = file_obj.decode('utf-8')
             chapters.append(file_content)
-        prompt = stub.id_prompt_dict.get(prev_id)
+        prompt = id_prompt_dict.get(prev_id)
         
         if prompt is not None:
             print("custom prompt retrieved...")
@@ -263,3 +268,7 @@ def redo_translate(prev_id: str, indexes: List[int]):
     except Exception as e:
         print(f"An error occurred in translate: {e}")
     return output
+        
+        
+
+    

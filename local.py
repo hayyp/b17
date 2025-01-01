@@ -2,8 +2,8 @@ import modal
 import argparse
 from typing import Tuple, List, Union, Optional
 
-translate = modal.Function.lookup("bot17", "translate")
-redo_translate = modal.Function.lookup("bot17", "redo_translate")
+translate = modal.Function.lookup("pr1", "translate")
+redo_translate = modal.Function.lookup("pr1", "redo_translate")
 
 
 def main():
@@ -36,6 +36,7 @@ def main():
             with open(file_name_without_ext+"_en.txt", 'w') as destination_content:
                 results: List[Optional[Union[str, None]]] = translate.remote(source_file.read()) # string
                 index = 0
+                print(results)
                 for result in results:
                     if index == 0:
                         print("Job ID: " + result)

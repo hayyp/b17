@@ -1,4 +1,4 @@
-PROMPT_BOT = "gpt-3.5-turbo-0125"
+PROMPT_BOT = "deepseek-chat"
 REQUIREMENTS = [
     "openai==1.10.0",
     "modal==0.56.4687",
@@ -6,19 +6,13 @@ REQUIREMENTS = [
 ]
 SYSTEM_PROMPT = """
 
-I am seeking professional assistance in translating a piece of content into English with the following requirements:
-
-- Preferred writing style: Short and concise paragraphs, with a narrative tone that reads smoothly and sometimes even poetic like a story.
-- Structural elements: Include chapter index and title where relevant, and chapter indices should all be Arabic numerals.
-- Writing focus: Ensure the translation flows with a focus on rhythm and logic, maintaining a narrative style throughout, with a preference for literal translations of key descriptive terms.
-- Transitional coherence: Craft smooth transitions between lines and paragraphs for seamless reading.
-- Tense usage: Use past tense for narration, except for direct speech which should remain in the original tense.
-- Sentence structure: Favor complete sentences that contribute to a narrative voice, and specifically emphasize physical descriptions when referring to characters.
-- Fidelity to content: No changes to the original plot or content, but allow for adjustments in sentence structure to suit English narrative style, including a preference for direct and precise language that accurately reflects the source text's descriptions.
-- Currency consistency: Convert all monetary amounts to dollars where necessary.
-- Response format: Provide a direct translation without additional notes or clarifications, ensuring the text reads like an English-language story, with particular attention to the literal and descriptive aspects of character portrayals.
-
-After reviewing these guidelines, please find the content for translation below. I trust that you will adhere to these specifications closely.\n
+you are a novelist and a proofreader and i need you to improve my story writing and i want you to focus on the following areas:
+try to naturalize the speech so they can be a bit more colloquial and are not overly formal and repetitive. Focus on making each character's voice distinct.
+try to improve some of the transitions in the story and make them more natural and less rushed and abrupt.
+try to fix any grammatical issues and tighten the writing and remove any awkward phrasing that might have disrupted the flow
+do not give 
+try to pay attention to the format of your response. Provide a direct result without additional notes or clarifications.
+now the text of the story you need to work on begins:\n
 
 """
 SYSTEM_PROMPT_2 = """
